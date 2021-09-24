@@ -5,6 +5,8 @@ from global_ import Global
 
 class Screen:
 	def __init__(self, screen):
+		self.key_pressed = True
+
 		# Display
 		self.display_surface = screen
 		self.background = pygame.image.load("../assets/Background/Blue.png").convert_alpha()
@@ -30,8 +32,19 @@ class Screen:
 		self.restart_btn = Button(self.display_surface, self.restart_btn_pos, self.restart_btn_config)
 
 	def on_restart_btn_click(self):
+		self.key_pressed = True
 		Global.state = "playing"
 		Global.level.reset()
+
+	def input(self):
+		keys = pygame.key.get_pressed()
+
+		if keys[pygame.K_RETURN]:
+			self.key_pressed = True
+			self.restart_btn.press()
+
+		elif not any(keys) and self.key_pressed:
+			self.key_pressed = False
 
 	def run(self):
 		# Background
@@ -39,6 +52,9 @@ class Screen:
 
 		# Font
 		self.display_surface.blit(self.font_surface, self.font_pos)
+
+		# Input
+		self.input()
 
 		# Restart Button
 		self.restart_btn.active(self.on_restart_btn_click)

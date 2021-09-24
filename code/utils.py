@@ -1,16 +1,20 @@
 import pygame, csv, os
 
 class Button:
-	def __init__(self, surface, pos, config=None, image=None):
+	def __init__(self, surface, pos, config=None, image=None, hover_image=None):
 		# Basic Setup
 		self.display_surface = surface
 		self.config = config
 		self.image = image
+		self.hover_image = hover_image
 		self.clicked = False
+		self.focused = None
+		self.on = True
 
 		# Button Surface
 		if image:
 			self.button = image
+		
 		else:
 			self.button = pygame.Surface(config["size"])
 			self.button.set_colorkey((0, 0, 0))
@@ -26,26 +30,63 @@ class Button:
 			if config["hover"]:
 				self.hover = config["hover"]
 
+		self.button_orginal_copy = self.button.copy()
 		self.rect = self.button.get_rect(center=pos)
 		
-
 	def check_click(self, onClick):
 		left_click = pygame.mouse.get_pressed()[0]
 		
 		if not self.image:
-			if self.config["hover"]:
+			if self.config["hover"] and self.on:
 				if self.rect.collidepoint(pygame.mouse.get_pos()):
 					self.config["color"] = self.hover
-				else:
+				elif not self.focused:
 					self.config["color"] = self.color
 
 		if left_click and not self.clicked:
 			self.clicked = True
 			if self.rect.collidepoint(pygame.mouse.get_pos()):
-				if onClick:
+				if onClick and self.on:
 					onClick()
 		
-		else: self.clicked = False
+		elif not left_click and self.clicked:
+			self.clicked = False
+
+	def hover_for_image_btn(self):
+		if self.rect.collidepoint(pygame.mouse.get_pos()):
+			self.image.blit(self.hover_image, (0, 0))
+		elif not self.focused:
+			self.image.blit(self.button_orginal_copy, (0, 0))
+
+	def focus(self):
+		if self.config:
+			self.focused = True
+			self.config["color"] = self.hover
+		elif self.hover_image:
+			self.focused = True
+			self.button.blit(self.hover_image, (0, 0))
+
+	def unfocus(self):
+		
+		if self.config:
+			self.focused = False
+			self.config["color"] = self.color
+
+		elif self.hover_image:
+			self.focused = False
+			self.button.blit(self.button_orginal_copy, (0, 0))
+
+	def press(self):
+		if self.on:
+			self.onClick()
+
+	def grey_out(self):
+		self.config["color"] = "grey"
+		self.on = False
+
+	def normal(self):
+		self.config["color"] = self.color
+		self.on = True
 
 	def draw(self):
 		btn = self.config
@@ -65,8 +106,11 @@ class Button:
 			self.display_surface.blit(self.button, self.rect)
 
 	def active(self, onClick=None):
+		self.onClick = onClick
 		self.check_click(onClick)
 		self.draw()
+		if self.hover_image and self.on:
+			self.hover_for_image_btn()
 
 def import_sprite_sheet(path, size_of_one_frame, scale=None):
 	size = size_of_one_frame

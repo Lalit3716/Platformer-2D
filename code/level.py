@@ -1,6 +1,6 @@
 import pygame, random
-import enemies
 from settings import *
+from utils import Button
 from terrain import TerrainTile, LimitTile
 from player import Player
 from portals import Portal
@@ -10,6 +10,8 @@ from global_ import Global
 class Level(pygame.sprite.Sprite):
 	def __init__(self, level):
 		super().__init__()
+		self.key_pressed = True
+
 		# World Variables
 		self.display_surface = pygame.display.get_surface()
 		background_color = levels[level]["color"]
@@ -50,6 +52,28 @@ class Level(pygame.sprite.Sprite):
 
 		# Create Whole Level At Once
 		self.create()
+
+		# Pause Button
+		pause_btn_image = pygame.image.load("../assets/Menu/Buttons/Pause.png").convert_alpha()
+		pause_btn_image = pygame.transform.scale2x(pause_btn_image)
+		self.pause_btn = Button(self.display_surface, (screen_width - 50, 50), image=pause_btn_image)
+
+		# Controls Button
+		controls_btn_image = pygame.image.load("../assets/Menu/Buttons/Controls.png").convert_alpha()
+		controls_btn_image = pygame.transform.scale2x(controls_btn_image)
+		self.controls_btn = Button(self.display_surface, (screen_width - 100, 50), image=controls_btn_image)
+
+	def on_pause_btn_clk(self):
+		self.key_pressed = True
+		if Global.history[-1] != "playing":
+			Global.history.append(Global.state)
+		Global.state = "pause"
+
+	def on_controls_btn_clk(self):
+		self.key_pressed = True
+		if Global.history[-1] != "playing":
+			Global.history.append(Global.state)
+		Global.state = "controls"
 
 	def create(self):
 		for type, data in self.layout.items():
@@ -187,15 +211,19 @@ class Level(pygame.sprite.Sprite):
 	# Get Game States
 	def input(self):
 		keys = pygame.key.get_pressed()
-		if keys[pygame.K_ESCAPE]:
-			if Global.history[-1] != "playing":
-				Global.history.append(Global.state)
-			Global.state = "pause"
+
+		if keys[pygame.K_ESCAPE] and not self.key_pressed:
+			self.key_pressed = True
+			self.pause_btn.press()
+
+		elif not any(keys) and self.key_pressed:
+			self.key_pressed = False
 			
 	def win(self):
 		portal = self.disappearing_portal.sprite
 		if portal.rect.colliderect(self.player.sprite.rect):
 			self.level_ended = True
+			self.player.sprite.direction.x = 0
 			portal.animate(0.2)
 			if portal.allowed:
 				next_level = Global.current_level + 1
@@ -209,21 +237,7 @@ class Level(pygame.sprite.Sprite):
 				else:
 					Global.state = "game_ended"
 					self.kill()
-				
-	# Debugging 
-	def show_rectangles(self):
-		pygame.draw.rect(self.display_surface, (0, 0, 0), self.player.sprite.rect, width=1)
-		for fruit in self.fruits.sprites():
-			pygame.draw.rect(self.display_surface, (0, 0, 0), fruit.rect, width=1)
-	
-	def show_limits(self):
-		pygame.draw.rect(self.display_surface, (0, 0, 0), self.world_limit_left.sprite.rect, width = 1)
-		pygame.draw.rect(self.display_surface, (0, 0, 0), self.world_limit_right.sprite.rect, width = 1)
-		for sprite in self.platform_limits.sprites():
-			pygame.draw.rect(self.display_surface, (0, 0, 0), sprite.rect, width=1)
-		for sprite in self.enemies_limits.sprites():
-			pygame.draw.rect(self.display_surface, (0, 0, 0), sprite.rect, width=1)
-
+			
 	# Draw all your stuff here ==>
 	def run(self):
 		# Background
@@ -256,10 +270,10 @@ class Level(pygame.sprite.Sprite):
 		self.disappearing_portal.draw(self.display_surface)
 
 		# Player
-		if not self.level_just_started:
+		if not (self.level_just_started or self.level_ended):
 			self.player.update()
 			
-		if (not self.level_just_started) and (not self.level_ended):
+		if not (self.level_just_started or self.level_ended):
 			self.player.sprite.take_hit([self.saw_traps])
 			self.player.draw(self.display_surface)
 
@@ -276,9 +290,11 @@ class Level(pygame.sprite.Sprite):
 		self.world_limit_right.update(self.world_shift_x, self.world_shift_y)
 		self.platform_limits.update(self.world_shift_x, self.world_shift_y)
 
+		# Pause Button
+		self.pause_btn.active(self.on_pause_btn_clk)
+
+		# Controls Button
+		self.controls_btn.active(self.on_controls_btn_clk)
+
 		# Win
 		self.win()
-
-		# Debugging
-		# self.show_rectangles()
-		# self.show_limits()

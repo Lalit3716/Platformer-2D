@@ -7,9 +7,10 @@ from global_ import Global
 class CharacterCard(pygame.sprite.Sprite):
 	def __init__(self, size, pos, character):
 		super().__init__()
+
 		# Font
 		font = pygame.font.Font("../assets/Menu/Font/3.otf", 20)
-		self.font = font.render(character, True, (0, 0, 0))
+		self.font = font.render(character, False, (0, 0, 0))
 
 		# Card
 		self.image = pygame.Surface(size, flags = pygame.SRCALPHA)
@@ -37,11 +38,16 @@ class CharacterCard(pygame.sprite.Sprite):
 				self.color = "pink"
 				self.player.sprite.state = "Run"
 			elif self.clicked:
+				self.color = "green"
 				self.player.sprite.state = "Idle"
 			self.player.sprite.animate(0.3)
+		
 		else:
 			if not self.clicked:
 				self.color = "grey"
+			elif self.clicked:
+				self.color = "green"
+
 			self.player.sprite.state = "Idle"
 			self.player.sprite.animate(0.3)
 
@@ -59,6 +65,9 @@ class CharacterCard(pygame.sprite.Sprite):
 
 class Screen:
 	def __init__(self, display_surface):
+		self.key_pressed = True
+		self.clicked = False
+
 		# Font
 		font = pygame.font.Font("../assets/Menu/Font/3.otf", 50)
 		self.font = font.render("Select Your Character", True, (0, 0, 0))
@@ -72,7 +81,7 @@ class Screen:
 		# Characters
 		self.characters = pygame.sprite.Group()
 		self.add_characters()
-		self.status = [False, False, False, False]
+		self.current_index = -1		# For keyboard inputs
 		self.selected_player = ""
 
 		# Play Button
@@ -102,20 +111,22 @@ class Screen:
 
 	def check_clicks(self):
 		left_click = pygame.mouse.get_pressed()[0]
-		if left_click:
+		if left_click and not self.clicked:
+			self.clicked = True
+
 			for index, character in enumerate(self.characters.sprites()):
 				if character.rect.collidepoint(pygame.mouse.get_pos()):
-					for i in range(len(self.status)):
-						if i == index:
-							self.status[i] = True
-							character.color = "green"
-							self.selected_player = character.character
-						else:
-							self.status[i] = False
-		
-				character.clicked = self.status[index]
+					self.current_index = index
+					character.clicked = True
+					self.selected_player = character.character
+				else:
+					character.clicked = False
+
+		elif not left_click and self.clicked:
+			self.clicked = False
 
 	def on_play_btn_click(self):
+		self.key_pressed = True
 		if self.selected_player == "":
 			self.selected_player = "Virtual Guy"
 		Global.level.set_player(self.selected_player)
@@ -123,8 +134,57 @@ class Screen:
 		Global.state = "playing"
 
 	def on_back_btn_clk(self):
+		self.key_pressed = True
 		Global.state = Global.history[-1]
 		Global.history.pop()
+
+	def input(self):
+		keys = pygame.key.get_pressed()
+
+		if keys[pygame.K_ESCAPE] and not self.key_pressed:
+			self.key_pressed = True
+			self.back_btn.press()
+
+		elif keys[pygame.K_RETURN] and not self.key_pressed:
+			self.key_pressed = True
+			self.play_btn.press()
+
+		elif keys[pygame.K_RIGHT] and not self.key_pressed:
+			self.key_pressed = True
+			characters = self.characters.sprites()
+			
+			if self.current_index < len(characters) - 1:
+				self.current_index += 1
+			else:
+				self.current_index = 0
+
+			for i in range(len(characters)):
+				if i == self.current_index:
+					characters[i].clicked = True
+				else:
+					characters[i].clicked = False
+
+			self.selected_player = characters[self.current_index].character
+
+		elif keys[pygame.K_LEFT] and not self.key_pressed:
+			self.key_pressed = True
+			characters = self.characters.sprites()
+			
+			if self.current_index > 0:
+				self.current_index -= 1
+			else:
+				self.current_index = len(characters) - 1
+			
+			for i in range(len(characters)):
+				if i == self.current_index:
+					characters[i].clicked = True
+				else:
+					characters[i].clicked = False
+
+			self.selected_player = characters[self.current_index].character
+
+		elif not any(keys) and self.key_pressed:
+			self.key_pressed = False
 
 	def run(self):
 		# Background
@@ -138,8 +198,16 @@ class Screen:
 		self.characters.update(self.display_surface)
 		self.check_clicks()
 
+		# Keyboard Input
+		self.input()
+
 		# Play Button
 		self.play_btn.active(self.on_play_btn_click)
+		
+		if not any([character.clicked for character in self.characters.sprites()]):
+			self.play_btn.grey_out()
+		else:
+			self.play_btn.normal()
 
 		# Back Button
 		self.back_btn.active(self.on_back_btn_clk)

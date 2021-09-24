@@ -25,10 +25,10 @@ class Player(pygame.sprite.Sprite):
 		self.on_ceiling = False
 
 		# Movements
-		self.gravity = 2
+		self.gravity = 1
 		self.direction = pygame.math.Vector2(0, 0)
 		self.speed = 5
-		self.jump_force = -25
+		self.jump_force = -19
 		self.hit = False
 		self.hit_cooldown = 10
 

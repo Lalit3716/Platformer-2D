@@ -15,6 +15,9 @@ class PlayerAnimation(Player):
 class Screen(pygame.sprite.Sprite):
 	def __init__(self, display_surface):
 		super().__init__()
+		self.key_pressed = True
+
+		# Basic Setup
 		font = pygame.font.Font("../assets/Menu/Font/3.otf", 70)
 		self.font = font.render("Platformer 2D", True, (0, 0, 0))
 		self.background = pygame.image.load("../assets/Background/Blue.png").convert_alpha()
@@ -39,8 +42,19 @@ class Screen(pygame.sprite.Sprite):
 		self.player = pygame.sprite.GroupSingle(player)
 
 	def play_btn_clk(self):
+		self.key_pressed = True
 		Global.history.append(Global.state)
 		Global.state = "level_select"
+
+	def input(self):
+		keys = pygame.key.get_pressed()
+
+		if keys[pygame.K_RETURN] and not self.key_pressed:
+			self.key_pressed = True
+			self.play_btn.press()
+
+		elif not any(keys) and self.key_pressed:
+			self.key_pressed = False
 
 	def run(self):
 		# Background
@@ -50,9 +64,12 @@ class Screen(pygame.sprite.Sprite):
 		pos = self.font.get_rect(center=(screen_width/2, 100))
 		self.display_surface.blit(self.font, pos)
 
+		# Keyboard Input
+		self.input()
+
 		# Play Button
 		self.play_btn.active(self.play_btn_clk)
 
-		# Player
+		# Player Animation
 		self.player.draw(self.display_surface)
 		self.player.update()
