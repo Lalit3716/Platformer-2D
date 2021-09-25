@@ -1,14 +1,22 @@
 import pygame
 from settings import screen_width, screen_height
 from utils import Button, import_sprite_sheet
-from player import Player
 from global_ import Global
 
-class PlayerAnimation(Player):
+class PlayerAnimation(pygame.sprite.Sprite):
 	def __init__(self, pos, scale, player="Virtual Guy"):
-		super().__init__(pos, scale, player)
-		self.on_ground = True
+		super().__init__()
+		self.frames = import_sprite_sheet(f"../assets/Main Characters/{player}/Idle (32x32).png", (32, 32), scale=scale)
+		self.index = 0
+		self.image = self.frames[int(self.index)]
+		self.rect = self.image.get_rect(center=pos)
  
+	def animate(self, speed=0.4):
+		self.index += speed
+		if self.index >= len(self.frames):
+			self.index = 0
+		self.image = self.frames[int(self.index)]
+
 	def update(self):
 		self.animate(0.4)
 			

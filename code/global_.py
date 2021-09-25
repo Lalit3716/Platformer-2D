@@ -6,3 +6,5 @@ class Global:
 	current_level = 1
 	max_level = len(levels)
 	history = []
+	score = 0
+	lives = 3

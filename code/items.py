@@ -2,6 +2,19 @@ import pygame
 from utils import import_sprite_sheet
 from settings import screen_height, tile_size
 
+# Base Class For any Static Sprite
+class StaticSprite(pygame.sprite.Sprite):
+	def __init__(self, pos, path, scale=None):
+		super().__init__()
+		self.image = pygame.image.load(path).convert_alpha()
+		if scale:
+			self.image = pygame.transform.scale(self.image, scale)
+		self.rect = self.image.get_rect(topleft=pos)
+
+	def update(self, world_shift_x):
+		self.rect.centerx += world_shift_x
+
+# Base Class For Any Uncontrollable Animated Sprite
 class AnimatedSprite(pygame.sprite.Sprite):
 	def __init__(self, pos, path, size, scale):
 		super().__init__()
@@ -29,20 +42,21 @@ class AnimatedSprite(pygame.sprite.Sprite):
 		self.rect.centery += world_shift_y
 		self.animate(0.4)
 
+# Fruit Class
 class Fruit(AnimatedSprite):
 	def __init__(self, pos, fruit):
-		offset = pygame.math.Vector2(tile_size//2, -tile_size//2)
+		offset = pygame.math.Vector2(tile_size//2-10, -tile_size//2)
 		pos = pos + offset
 		path = f"../assets/Items/Fruits/{fruit}.png"
 		size = (32, 32)
 		scale = (30, 30)
 		super().__init__(pos, path, size, scale)
 
+# Traps Classes
 class SawTrap(AnimatedSprite):
 	def __init__(self, pos):
 		super().__init__(pos, "../assets/Traps/Saw/On (38x38).png", (38, 38), (38, 38))
 		self.speed = pygame.math.Vector2(3, 0)
-		self.dying = False
 		self.name = "SawTrap"
 
 	def move(self):
@@ -94,3 +108,7 @@ class FallingTrap(AnimatedSprite):
 		if self.timer <= 0:
 			self.rect.y += self.gravity
 		self.destroy()
+
+class Spikes(StaticSprite):
+	def __init__(self, pos, path="../assets/Traps/Spikes/Idle.png"):
+		super().__init__(pos, path)

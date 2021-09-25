@@ -2,9 +2,9 @@ import pygame
 from settings import screen_width, screen_height
 from utils import Button
 from global_ import Global
-from .home_screen import PlayerAnimation
+from player import Player
 
-class PlayerAnimation(PlayerAnimation):
+class PlayerAnimation(Player):
 	def __init__(self, pos, scale, player="Virtual Guy"):
 		super().__init__(pos, scale, player)
 
@@ -22,6 +22,8 @@ class PlayerAnimation(PlayerAnimation):
 			self.state = "Jump"
 
 	def update(self):
+		if Global.level:
+			self.create_jump_particles = Global.level.create_jump_particles
 		self.get_input()
 		self.get_state()
 		self.get_jump_states()

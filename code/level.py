@@ -1,12 +1,15 @@
 import pygame, random
 from settings import *
 from utils import Button
+from Particles import ParticleEffect
 from terrain import TerrainTile, LimitTile
 from player import Player
 from portals import Portal
-from items import Fruit, FallingTrap, SawTrap
+from items import Fruit, FallingTrap, SawTrap, Spikes
+from hud import Hud
 from global_ import Global
 
+# Caution! Very Long Class!
 class Level(pygame.sprite.Sprite):
 	def __init__(self, level):
 		super().__init__()
@@ -24,6 +27,7 @@ class Level(pygame.sprite.Sprite):
 		self.world_stop = False
 		self.level_just_started = True
 		self.level_ended = False
+		self.scrolled_distance = 0
 
 		# Terrain
 		self.layout = levels[level]["level_data"]
@@ -35,6 +39,11 @@ class Level(pygame.sprite.Sprite):
 
 		# Player
 		self.player = pygame.sprite.GroupSingle()
+		self.died = False
+		self.player_was_on_ground = False
+
+		# Particles
+		self.particles = pygame.sprite.GroupSingle()
 
 		# Fruits
 		self.fruits = pygame.sprite.Group()
@@ -42,6 +51,7 @@ class Level(pygame.sprite.Sprite):
 		# Traps
 		self.saw_traps = pygame.sprite.Group()
 		self.falling_traps = pygame.sprite.Group()
+		self.spikes = pygame.sprite.Group()
 
 		# Platforms Limits
 		self.platform_limits = pygame.sprite.Group()
@@ -63,6 +73,10 @@ class Level(pygame.sprite.Sprite):
 		controls_btn_image = pygame.transform.scale2x(controls_btn_image)
 		self.controls_btn = Button(self.display_surface, (screen_width - 100, 50), image=controls_btn_image)
 
+		# Hud
+		Global.score = 0
+		self.hud = Hud()
+
 	def on_pause_btn_clk(self):
 		self.key_pressed = True
 		if Global.history[-1] != "playing":
@@ -74,6 +88,18 @@ class Level(pygame.sprite.Sprite):
 		if Global.history[-1] != "playing":
 			Global.history.append(Global.state)
 		Global.state = "controls"
+
+	# Particles
+	def create_jump_particles(self, pos):
+		offset = pygame.math.Vector2(0, -10)
+		jump_particles = ParticleEffect(pos+offset, "jump")
+		self.particles.add(jump_particles)
+
+	def create_land_particles(self):
+		if not self.player_was_on_ground and self.player.sprite.on_ground and not self.particles.sprites():
+			pos = self.player.sprite.rect.midbottom + pygame.math.Vector2(0, -20)
+			land_particles = ParticleEffect(pos, "land")
+			self.particles.add(land_particles)
 
 	def create(self):
 		for type, data in self.layout.items():
@@ -89,6 +115,8 @@ class Level(pygame.sprite.Sprite):
 						if cell == "1":
 							self.player_x = x
 							self.player_y = y
+							self.starting_player_x = x
+							self.starting_player_y = y
 							self.appearing_portal.add(Portal((x, y), "appearing"))
 						elif cell == "2":
 							self.disappearing_portal.add(Portal((x, y), "disappearing"))
@@ -110,6 +138,8 @@ class Level(pygame.sprite.Sprite):
 							self.falling_traps.add(FallingTrap((x, y)))
 						elif cell == "3":
 							self.saw_traps.add(SawTrap((x, y)))
+						elif cell == "5":
+							self.spikes.add(Spikes((x, y)))
 
 					if type == "limit":
 						if cell == "0":
@@ -124,33 +154,41 @@ class Level(pygame.sprite.Sprite):
 							self.platform_limits.add(LimitTile((x, y), type="bottomright"))
 						elif cell == "5":
 							self.platform_limits.add(LimitTile((x, y), type="topright"))
-			
+	
+	def check_player_on_ground(self):
+		if self.player.sprite.on_ground:
+			self.player_was_on_ground = True
+		else:
+			self.player_was_on_ground = False
+
 	def horizontal_collisions(self):
 		player = self.player.sprite
 		player.move()
-		for tile in self.tiles.sprites() + self.falling_traps.sprites():
-			if tile.rect.colliderect(player.rect):
-				if player.direction.x > 0:
-					player.rect.right = tile.rect.left
-				elif player.direction.x < 0:
-					player.rect.left = tile.rect.right
+		if self.player.sprite.collideable:
+			for tile in self.tiles.sprites() + self.falling_traps.sprites():
+				if tile.rect.colliderect(player.rect):
+					if player.direction.x > 0:
+						player.rect.right = tile.rect.left
+					elif player.direction.x < 0:
+						player.rect.left = tile.rect.right
 
 	def vertical_collisions(self):
 		player = self.player.sprite
 		player.apply_gravity()
-		for tile in self.tiles.sprites() + self.falling_traps.sprites():
-			if tile.rect.colliderect(player.rect):
-				if player.direction.y > 0: 
-					player.rect.bottom = tile.rect.top
-					player.direction.y = 0
-					player.on_ground = True
-					if tile in self.falling_traps.sprites():
-						tile.fall()
+		if self.player.sprite.collideable:
+			for tile in self.tiles.sprites() + self.falling_traps.sprites():
+				if tile.rect.colliderect(player.rect):
+					if player.direction.y > 0: 
+						player.rect.bottom = tile.rect.top
+						player.direction.y = 0
+						player.on_ground = True
+						if tile in self.falling_traps.sprites():
+							tile.fall()
 
-				elif player.direction.y < 0:
-					player.rect.top = tile.rect.bottom
-					player.direction.y = 0
-					player.on_ceiling = True
+					elif player.direction.y < 0:
+						player.rect.top = tile.rect.bottom
+						player.direction.y = 0
+						player.on_ceiling = True
 										
 	def scroll_x(self):
 		player = self.player.sprite
@@ -173,6 +211,30 @@ class Level(pygame.sprite.Sprite):
 			self.world_shift_x = 0
 			player.speed = 5
 
+		self.scrolled_distance += self.world_shift_x
+
+	def scroll_back(self):
+		speed = 15
+		if self.scrolled_distance > 0:
+			self.scrolled_distance -= speed
+			if self.scrolled_distance <= 0:
+				self.died = False
+				self.appearing_portal.add(Portal((self.starting_player_x, self.starting_player_y), "appearing"))
+				self.appearing_portal.sprite.hide()
+				self.world_shift_x = 0
+			else:
+				self.world_shift_x = -speed
+
+		else:
+			self.scrolled_distance += speed
+			if self.scrolled_distance >= 0:
+				self.died = False
+				self.appearing_portal.add(Portal((self.starting_player_x, self.starting_player_y), "appearing"))
+				self.appearing_portal.sprite.hide()
+				self.world_shift_x = 0
+			else:
+				self.world_shift_x = speed
+
 	def scroll_background(self, speed):
 		self.display_surface.blit(self.background, (0, self.bg_y))
 		self.display_surface.blit(self.background2, (0, self.bg_y-screen_height))
@@ -185,27 +247,50 @@ class Level(pygame.sprite.Sprite):
 		self.player.add(Player((self.player_x, self.player_y), scale=(50, 50), player=character))
 
 	def collect_fruits(self):
-		pygame.sprite.spritecollide(self.player.sprite, self.fruits, True)	
+		if self.player.sprite.collideable:
+			for fruit in self.fruits.sprites():
+				if fruit.rect.colliderect(self.player.sprite.rect):
+					fruit.kill()
+					Global.score += 1
+					if Global.score % 50 == 0:
+						Global.lives += 1
 
 	def check_game_over(self):
 		player = self.player.sprite
 		if player.rect.y > screen_height:
-			Global.state = "game_over"
+			Global.lives -= 1
+			
+			if Global.lives == 0:
+				Global.state = "game_over"
+			
+			else:
+				self.died = True
+				self.smooth_reset()
 
 	def destroy_level(self):
 		for sprite in self.tiles.sprites() + self.fruits.sprites() + self.falling_traps.sprites() + self.saw_traps.sprites():
 			sprite.kill()
+		self.spikes.empty()
 		self.platform_limits.empty()
 		self.world_limit_left.sprite.kill()
 		self.world_limit_right.sprite.kill()
 		self.appearing_portal.empty()
 		self.disappearing_portal.empty()
 
+	def smooth_reset(self):
+		self.player.sprite.kill()
+		x, y = self.starting_player_x, self.starting_player_y
+		self.player.add(Player((x, y), scale=(50, 50), player=self.character))
+		self.level_just_started = True
+
 	def reset(self):
+		Global.score = 0
+		Global.lives = 3
 		self.player.sprite.kill()
 		self.destroy_level()
 		self.create()
 		self.level_just_started = True
+		self.scrolled_distance = 0
 		self.player.add(Player((self.player_x, self.player_y), scale=(50, 50), player=self.character))
 
 	# Get Game States
@@ -238,7 +323,7 @@ class Level(pygame.sprite.Sprite):
 					Global.state = "game_ended"
 					self.kill()
 			
-	# Draw all your stuff here ==>
+	# Draw/Update all the stuff here ==>
 	def run(self):
 		# Background
 		self.scroll_background(1.5)
@@ -247,16 +332,25 @@ class Level(pygame.sprite.Sprite):
 		self.input()
 		self.check_game_over()
 
+		# Particles
+		self.particles.update(self.world_shift_x)
+		self.particles.draw(self.display_surface)
+
 		# Traps
 		self.saw_traps.update(self.world_shift_x, self.world_shift_y, self.platform_limits)
 		self.saw_traps.draw(self.display_surface)
 		self.falling_traps.update(self.world_shift_x, self.world_shift_y)
 		self.falling_traps.draw(self.display_surface)
+		self.spikes.update(self.world_shift_x)
+		self.spikes.draw(self.display_surface)
 
 		# Terrain
 		self.tiles.update(self.world_shift_x, self.world_shift_y, self.display_surface)
 		self.tiles.draw(self.display_surface)
-		self.scroll_x()
+		if not self.died:
+			self.scroll_x()
+		elif self.died:
+			self.scroll_back()
 
 		# Fruits
 		self.fruits.update(self.world_shift_x, self.world_shift_y)
@@ -269,21 +363,22 @@ class Level(pygame.sprite.Sprite):
 		self.appearing_portal.draw(self.display_surface)
 		self.disappearing_portal.draw(self.display_surface)
 
+		# Collisions
+		if not self.died and not (self.level_just_started or self.level_ended):
+			self.horizontal_collisions()
+			self.check_player_on_ground()
+			self.vertical_collisions()
+			self.create_land_particles()
+
 		# Player
 		if not (self.level_just_started or self.level_ended):
 			self.player.update()
-			
-		if not (self.level_just_started or self.level_ended):
-			self.player.sprite.take_hit([self.saw_traps])
+			self.player.sprite.take_hit(self.saw_traps, self.spikes)
 			self.player.draw(self.display_surface)
 
 		# Update Player Position
 		self.player_x = self.player.sprite.rect.centerx
 		self.player_y = self.player.sprite.rect.centery	
-		
-		# Collisions
-		self.horizontal_collisions()
-		self.vertical_collisions()
 
 		# Limits
 		self.world_limit_left.update(self.world_shift_x, self.world_shift_y)
@@ -298,3 +393,6 @@ class Level(pygame.sprite.Sprite):
 
 		# Win
 		self.win()
+
+		# Hud
+		self.hud.draw()

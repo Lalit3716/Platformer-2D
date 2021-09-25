@@ -23,9 +23,10 @@ class Screen:
 		self.locked_img = pygame.image.load("../assets/Menu/locked.png").convert_alpha()
 		self.btns = []
 		self.fns = []
-		self.selected_btn = -1
+		self.selected_btn = 0
 		self.create_levels_buttons()
 		self.create_on_clk_fns()
+		self.btns[self.selected_btn].focus()
 
 		# Back Button
 		back_btn_image = pygame.transform.scale2x(pygame.image.load("../assets/Menu/Buttons/Back.png").convert_alpha())
@@ -86,6 +87,7 @@ class Screen:
 			Global.history.append(Global.state)
 			Global.state = "choose_player"
 			Global.current_level = i
+			Global.lives = 3
 
 		return inner
 

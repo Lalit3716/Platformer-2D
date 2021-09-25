@@ -134,6 +134,14 @@ def import_sprite_sheet(path, size_of_one_frame, scale=None):
 
 	return frames
 
+def import_folder(path):
+	frames = []
+	for img in os.listdir(path=path):
+		img_path = path + "/" + img
+		frame = pygame.image.load(img_path).convert_alpha()
+		frames.append(frame)
+	return frames
+
 def import_csv(path):
 	map = []
 	with open(path) as f:

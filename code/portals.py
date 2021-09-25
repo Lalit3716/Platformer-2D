@@ -17,6 +17,9 @@ class Portal(pygame.sprite.Sprite):
 		elif self.type == "disappearing":
 			self.frames = import_sprite_sheet("../assets/Main Characters/Desappearing (96x96).png", (96, 96))
 		
+	def hide(self):
+		self.image = pygame.Surface((0, 0), pygame.SRCALPHA)
+
 	def animate(self, speed=0.4):
 		self.index += speed
 		if self.index >= len(self.frames):
