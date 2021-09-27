@@ -5,6 +5,11 @@ from utils import Button
 
 class Screen:
 	def __init__(self, surface):
+		self.key_pressed = False
+
+		# sfx
+		self.click_sound = pygame.mixer.Sound("../assets/Audio/Interface/click_003.ogg")
+
 		# Setup
 		self.display_surface = surface
 		self.background = pygame.image.load("../assets/Background/Blue.png").convert_alpha()
@@ -39,12 +44,26 @@ class Screen:
 		self.main_menu_btn = Button(self.display_surface, (screen_width//2, screen_height//2+80), self.main_btn_config)
 
 	def on_main_menu_btn_clk(self):
-		
+		self.key_pressed = True
+		self.click_sound.play()
 		Global.state = "opening_scene"
+
+	def input(self):
+		keys = pygame.key.get_pressed()
+
+		if keys[pygame.K_RETURN]:
+			self.key_pressed = True
+			self.main_menu_btn.press()
+
+		elif not any(keys) and self.key_pressed:
+			self.key_pressed = False
 
 	def run(self):
 		# Background
 		self.display_surface.blit(self.background, (0, 0))
+
+		# Input
+		self.input()
 
 		# Text
 		self.display_surface.blit(self.font_surface1, self.font1_pos)

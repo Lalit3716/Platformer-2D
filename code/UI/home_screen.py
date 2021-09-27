@@ -25,6 +25,9 @@ class Screen(pygame.sprite.Sprite):
 		super().__init__()
 		self.key_pressed = True
 
+		# Sfx
+		self.click_sound = pygame.mixer.Sound("../assets/Audio/Interface/click_003.ogg")
+
 		# Basic Setup
 		font = pygame.font.Font("../assets/Menu/Font/3.otf", 70)
 		self.font = font.render("Platformer 2D", True, (0, 0, 0))
@@ -50,6 +53,7 @@ class Screen(pygame.sprite.Sprite):
 		self.player = pygame.sprite.GroupSingle(player)
 
 	def play_btn_clk(self):
+		self.click_sound.play()
 		self.key_pressed = True
 		Global.history.append(Global.state)
 		Global.state = "level_select"

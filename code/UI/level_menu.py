@@ -7,7 +7,12 @@ from settings import screen_width, screen_height, levels
 class Screen:
 	def __init__(self, screen):
 		self.key_pressed = True
-	
+		
+		# sfx
+		self.click_sound = pygame.mixer.Sound("../assets/Audio/Interface/click_003.ogg")
+		self.back_sound = pygame.mixer.Sound("../assets/Audio/Interface/tick_002.ogg")
+		self.drop_sound = pygame.mixer.Sound("../assets/Audio/Interface/drop_003.ogg")
+
 		# Basic Setup
 		self.display_surface = screen
 		self.background = pygame.image.load("../assets/Background/Blue.png").convert_alpha()
@@ -23,7 +28,7 @@ class Screen:
 		self.locked_img = pygame.image.load("../assets/Menu/locked.png").convert_alpha()
 		self.btns = []
 		self.fns = []
-		self.selected_btn = 0
+		self.selected_btn = -1
 		self.create_levels_buttons()
 		self.create_on_clk_fns()
 		self.btns[self.selected_btn].focus()
@@ -34,6 +39,7 @@ class Screen:
 
 	def create_levels_buttons(self):
 		self.btns.clear()
+		self.unlocked_levels = 0
 		offset_x = 350
 		offset_y = 200
 		margin = 80
@@ -82,6 +88,7 @@ class Screen:
 
 	def make_clk_func(self, i):
 		def inner():
+			self.click_sound.play()
 			self.key_pressed = True
 			Global.level = Level(i)
 			Global.history.append(Global.state)
@@ -96,6 +103,7 @@ class Screen:
 			btn.active(self.fns[self.btns.index(btn)])
 
 	def on_back_btn_clk(self):
+		self.back_sound.play()
 		self.key_pressed = True
 		Global.state = Global.history[-1]
 		Global.history.pop()
@@ -108,6 +116,7 @@ class Screen:
 			self.back_btn.press()
 
 		if keys[pygame.K_RIGHT] and not self.key_pressed:
+			self.drop_sound.play()
 			self.key_pressed = True
 			if self.selected_btn < self.unlocked_levels - 1:
 				self.selected_btn += 1
@@ -121,6 +130,7 @@ class Screen:
 					self.btns[i].unfocus()
 
 		if keys[pygame.K_LEFT] and not self.key_pressed:
+			self.drop_sound.play()
 			self.key_pressed = True
 			if self.selected_btn > 0:
 				self.selected_btn -= 1

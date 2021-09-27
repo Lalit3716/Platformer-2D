@@ -68,6 +68,11 @@ class Screen:
 		self.key_pressed = True
 		self.clicked = False
 
+		# sfx
+		self.click_sound = pygame.mixer.Sound("../assets/Audio/Interface/click_003.ogg")
+		self.back_sound = pygame.mixer.Sound("../assets/Audio/Interface/tick_002.ogg")
+		self.drop_sound = pygame.mixer.Sound("../assets/Audio/Interface/drop_003.ogg")
+
 		# Font
 		font = pygame.font.Font("../assets/Menu/Font/3.otf", 50)
 		self.font = font.render("Select Your Character", True, (0, 0, 0))
@@ -116,6 +121,7 @@ class Screen:
 
 			for index, character in enumerate(self.characters.sprites()):
 				if character.rect.collidepoint(pygame.mouse.get_pos()):
+					self.click_sound.play()
 					self.current_index = index
 					character.clicked = True
 					self.selected_player = character.character
@@ -126,6 +132,7 @@ class Screen:
 			self.clicked = False
 
 	def on_play_btn_click(self):
+		self.click_sound.play()
 		self.key_pressed = True
 		if self.selected_player == "":
 			self.selected_player = "Virtual Guy"
@@ -134,6 +141,7 @@ class Screen:
 		Global.state = "playing"
 
 	def on_back_btn_clk(self):
+		self.back_sound.play()
 		self.key_pressed = True
 		Global.state = Global.history[-1]
 		Global.history.pop()
@@ -150,6 +158,7 @@ class Screen:
 			self.play_btn.press()
 
 		elif keys[pygame.K_RIGHT] and not self.key_pressed:
+			self.drop_sound.play()
 			self.key_pressed = True
 			characters = self.characters.sprites()
 			
@@ -167,6 +176,7 @@ class Screen:
 			self.selected_player = characters[self.current_index].character
 
 		elif keys[pygame.K_LEFT] and not self.key_pressed:
+			self.drop_sound.play()
 			self.key_pressed = True
 			characters = self.characters.sprites()
 			

@@ -15,6 +15,10 @@ class Level(pygame.sprite.Sprite):
 		super().__init__()
 		self.key_pressed = True
 
+		# Fruit Collect Sfx
+		self.extra_live = pygame.mixer.Sound("../assets/Audio/Level/extra-live.mp3")
+		self.fruit_sound = pygame.mixer.Sound("../assets/Audio/Level/fruit.wav")
+
 		# World Variables
 		self.display_surface = pygame.display.get_surface()
 		background_color = levels[level]["color"]
@@ -222,6 +226,13 @@ class Level(pygame.sprite.Sprite):
 				self.appearing_portal.add(Portal((self.starting_player_x, self.starting_player_y), "appearing"))
 				self.appearing_portal.sprite.hide()
 				self.world_shift_x = 0
+				for row_index, row in enumerate(self.layout["trap"]): 
+					for col_index, cell in enumerate(row):
+						x = col_index * tile_size
+						y = row_index * tile_size
+						if cell == "0":
+							self.falling_traps.add(FallingTrap((x, y)))
+
 			else:
 				self.world_shift_x = -speed
 
@@ -232,6 +243,12 @@ class Level(pygame.sprite.Sprite):
 				self.appearing_portal.add(Portal((self.starting_player_x, self.starting_player_y), "appearing"))
 				self.appearing_portal.sprite.hide()
 				self.world_shift_x = 0
+				for row_index, row in enumerate(self.layout["trap"]): 
+					for col_index, cell in enumerate(row):
+						x = col_index * tile_size
+						y = row_index * tile_size
+						if cell == "0":
+							self.falling_traps.add(FallingTrap((x, y)))		
 			else:
 				self.world_shift_x = speed
 
@@ -248,12 +265,12 @@ class Level(pygame.sprite.Sprite):
 
 	def collect_fruits(self):
 		if self.player.sprite.collideable:
-			for fruit in self.fruits.sprites():
-				if fruit.rect.colliderect(self.player.sprite.rect):
-					fruit.kill()
-					Global.score += 1
-					if Global.score % 50 == 0:
-						Global.lives += 1
+			if group := pygame.sprite.spritecollide(self.player.sprite, self.fruits, True):
+				self.fruit_sound.play()
+				Global.score += len(group)
+				if Global.score % 50 == 0:
+					self.extra_live.play()
+					Global.lives += 1
 
 	def check_game_over(self):
 		player = self.player.sprite
@@ -279,6 +296,7 @@ class Level(pygame.sprite.Sprite):
 
 	def smooth_reset(self):
 		self.player.sprite.kill()
+		self.falling_traps.empty()
 		x, y = self.starting_player_x, self.starting_player_y
 		self.player.add(Player((x, y), scale=(50, 50), player=self.character))
 		self.level_just_started = True

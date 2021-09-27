@@ -7,6 +7,9 @@ class Screen:
 	def __init__(self, screen):
 		self.key_pressed = True
 
+		# sfx
+		self.click_sound = pygame.mixer.Sound("../assets/Audio/Interface/click_003.ogg")
+		
 		# Display
 		self.display_surface = screen
 		self.background = pygame.image.load("../assets/Background/Blue.png").convert_alpha()
@@ -32,6 +35,7 @@ class Screen:
 		self.restart_btn = Button(self.display_surface, self.restart_btn_pos, self.restart_btn_config)
 
 	def on_restart_btn_click(self):
+		self.click_sound.play()
 		self.key_pressed = True
 		Global.state = "playing"
 		Global.level.reset()

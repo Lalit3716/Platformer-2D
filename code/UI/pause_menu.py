@@ -7,6 +7,11 @@ class Pause_Screen:
 	def __init__(self, screen):
 		self.key_pressed = True
 
+		# sfx
+		self.click_sound = pygame.mixer.Sound("../assets/Audio/Interface/click_003.ogg")
+		self.back_sound = pygame.mixer.Sound("../assets/Audio/Interface/tick_002.ogg")
+		self.drop_sound = pygame.mixer.Sound("../assets/Audio/Interface/drop_003.ogg")
+
 		# Basic Setup
 		self.display_surface = screen
 		self.background = pygame.image.load("../assets/Background/Blue.png").convert_alpha()
@@ -75,31 +80,37 @@ class Pause_Screen:
 		self.btn_selected = None
 
 	def on_resume_btn_clk(self):
+		self.click_sound.play()
 		self.key_pressed = True
 		Global.state = "playing"
 
 	def on_restart_btn_click(self):
+		self.click_sound.play()
 		self.key_pressed = True
 		Global.state = "playing"
 		Global.level.reset()
 
 	def on_change_btn_clk(self):
+		self.click_sound.play()
 		self.key_pressed = True
 		Global.history.append(Global.state)
 		Global.state = "choose_player"
 
 	def on_quit_btn_click(self):
+		self.click_sound.play()
 		self.key_pressed = True
 		Global.state = "opening_scene"
 		Global.level.reset()
 		Global.history.clear()
 
 	def on_levels_btn_clk(self):
+		self.click_sound.play()
 		self.key_pressed = True
 		Global.history.append(Global.state)
 		Global.state = "level_select"
 
 	def on_back_btn_clk(self):
+		self.back_sound.play()
 		self.key_pressed = True
 		Global.state = Global.history[-1]
 		Global.history.pop()
@@ -108,6 +119,7 @@ class Pause_Screen:
 		keys = pygame.key.get_pressed()
 		
 		if keys[pygame.K_DOWN] and not self.key_pressed:
+			self.drop_sound.play()
 			self.key_pressed = True
 	
 			if self.current_index < len(self.btns)-1:
@@ -120,6 +132,7 @@ class Pause_Screen:
 			self.btn_selected = self.btns[self.current_index]
 
 		if keys[pygame.K_UP] and not self.key_pressed:
+			self.drop_sound.play()
 			self.key_pressed = True
 	
 			if self.current_index > 0:

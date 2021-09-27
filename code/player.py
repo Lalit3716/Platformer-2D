@@ -8,6 +8,11 @@ class Player(pygame.sprite.Sprite):
 		super().__init__()
 		self.display_surface = pygame.display.get_surface()
 
+		# Jump Sound
+		self.jump_sound = pygame.mixer.Sound("../assets/Audio/Level/jump.wav")
+		self.jump_sound.set_volume(0.2)
+		self.hit_sound = pygame.mixer.Sound("../assets/Audio/Level/hit.wav")
+
 		# Animations
 		self.player = player
 		self.scale = scale
@@ -102,6 +107,7 @@ class Player(pygame.sprite.Sprite):
 			self.direction.x = 0
 
 		if keys[pygame.K_SPACE] and self.on_ground:
+			self.jump_sound.play()
 			self.create_jump_particles(self.rect.midbottom)
 			self.jump()
 
@@ -118,16 +124,12 @@ class Player(pygame.sprite.Sprite):
 			for group in groups:
 				for sprite in group.sprites():
 					if sprite.rect.colliderect(self.rect):
+						self.hit_sound.play()
+						self.collideable = False
 						self.frame_index = 0
 						self.hit = True
 						self.direction.x = 0
-						if self.direction.y < 0 or (self.direction.y == 0 and not self.on_ground):
-							self.jump(5)
-							self.collideable = False
-
-						elif self.direction.y > 0 or (self.direction.y == 0 and self.on_ground):
-							self.jump(-15)
-							self.collideable = False
+						self.jump(-15)
 
 	def update(self):
 		# Particles
